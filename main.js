@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { Text } from 'troika-three-text'
 
 const canvas = document.querySelector('#cnvs');
 
@@ -6,9 +7,9 @@ const renderer = new THREE.WebGLRenderer({ canvas });
 renderer.setSize(window.innerWidth, window.innerHeight, false);
 renderer.setAnimationLoop(animate);
 
-const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 500);
-camera.position.set(0, 0, 2);
-camera.lookAt(0, 1.7, 0);
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
+camera.position.set(0, 1.3, 1.8);
+camera.lookAt(0, 1.3, 0);
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color(0x041230);
@@ -22,8 +23,8 @@ mainOrbit.add(planet);
 
 const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffbb });
 const stars = [];
-const distanceToCenter = 100;
-const outerRadius = 700;
+const distanceToCenter = 50;
+const outerRadius = 1200;
 for (let i = 0; i < 700; i++) {
     const starGeometry = new THREE.SphereGeometry(Math.random() * 0.6 + 0.4, 12, 7);
     const star = new THREE.Mesh(starGeometry, starMaterial);
@@ -42,12 +43,12 @@ function getRandomPositions() {
 const color = 0xffffff;
 const intensity = 0.4;
 const light = new THREE.DirectionalLight(color, intensity);
-light.position.set(-1, 2, 10);
+light.position.set(-1, 2, 6);
 scene.add(light);
 
 const light2 = new THREE.DirectionalLight(color, 10);
-light2.position.set(0, 2, -2);
-light2.lookAt(0, 0, 2);
+light2.position.set(0, 0.5, -2);
+light2.lookAt(0, 2, 2);
 scene.add(light2);
 
 window.addEventListener('resize', onWindowResize);
@@ -71,12 +72,27 @@ function animate() {
             mainOrbit.rotation.x -= rotateSpeed;
         }
     }
+
+    if (mainOrbit.rotation.x > Math.PI * 2) {
+        mainOrbit.rotation.x -= Math.PI * 2;
+    } else if (mainOrbit.rotation.x < 0) {
+        mainOrbit.rotation.x += Math.PI * 2;
+    }
+    if (target > Math.PI * 2) {
+        target -= Math.PI * 2;
+    } else if (target < 0) {
+        target += Math.PI * 2;
+    }
+
+
 }
 
-const scrollSpeed = 0.02;
+const scrollSpeed = 0.003;
 function onMouseWheel(event) {
     // Adjust the planet's rotation based on the scroll input
+    const isTrackpad = Math.abs(event.deltaY) < 100;
     let factor = event.deltaY > 0 ? 1 : -1;
+    factor = isTrackpad ? factor * -1 : factor;
     target += factor * scrollSpeed;
     targetDirection = factor;
 }
@@ -89,8 +105,6 @@ function resizeRendererToDisplaySize(renderer, camera) {
     const pixelRatio = window.devicePixelRatio;
     const width = Math.floor(canvas.clientWidth * pixelRatio);
     const height = Math.floor(canvas.clientHeight * pixelRatio);
-    // const width = canvas.clientWidth;
-    // const height = canvas.clientHeight;
     const needResize = canvas.width !== width || canvas.height !== height;
     if (needResize) {
         renderer.setSize(width, height, false);
@@ -99,3 +113,25 @@ function resizeRendererToDisplaySize(renderer, camera) {
     }
     return needResize;
 }
+
+const title = new Text();
+title.text = 'Han Kortekaas';
+title.fontSize = 0.2;
+title.color = 0xffffbb;
+title.anchorX = 'center';
+title.sync();
+
+const subTitle = new Text();
+subTitle.text = 'Software Developer';
+subTitle.fontSize = 0.08;
+subTitle.color = 0xffffbb;
+subTitle.anchorX = 'center';
+subTitle.sync();
+
+const textContainer = new THREE.Object3D();
+textContainer.add(title);
+textContainer.add(subTitle);
+
+subTitle.position.setY(-0.2);
+textContainer.position.setY(1.5);
+scene.add(textContainer);

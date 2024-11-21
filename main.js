@@ -60,18 +60,13 @@ function onWindowResize() {
 let target = 0;
 let targetDirection = 1;
 const rotateSpeed = 0.0002;
+const titleBottom = 1.5;
+const titleTop = 2;
+let titleTarget = 0;
+const titleAtTop = Math.PI / 10;
+const titleStillness = 0.1;
 function animate() {
     renderer.render(scene, camera);
-
-    if (targetDirection === 1) {
-        while (target > mainOrbit.rotation.x) {
-            mainOrbit.rotation.x += rotateSpeed;
-        }
-    } else {
-        while (target < mainOrbit.rotation.x) {
-            mainOrbit.rotation.x -= rotateSpeed;
-        }
-    }
 
     if (mainOrbit.rotation.x > Math.PI * 2) {
         mainOrbit.rotation.x -= Math.PI * 2;
@@ -84,6 +79,47 @@ function animate() {
         target += Math.PI * 2;
     }
 
+    if (target > titleAtTop) {
+        if (target < Math.PI * 2 - titleAtTop) {
+            titleTarget = titleTop;
+        } else if (target > Math.PI * 2 - titleStillness) {
+            titleTarget = titleBottom;
+        } else {
+            let factor = ((Math.PI * 2 - titleStillness - target) / (titleAtTop - titleStillness));
+            let scale = (1 - factor) * 0.5 + 0.5;
+            textContainer.scale.set(scale, scale, scale);
+            titleTarget = factor * (titleTop - titleBottom) + titleBottom;
+        }
+    } else if (target < titleStillness) {
+        titleTarget = titleBottom;
+    } else {
+        let factor = ((target - titleStillness) / (titleAtTop - titleStillness));
+        console.log(factor);
+        let scale = (1 - factor) * 0.5 + 0.5;
+        textContainer.scale.set(scale, scale, scale);
+        titleTarget = factor * (titleTop - titleBottom) + titleBottom;
+    }
+
+    // console.log(textContainer.position.y, titleTarget);
+    // titleTarget = target > titleAtTop && target < Math.Pi * 2 - titleAtTop
+    //     ? titleTop
+    //     : titleTop;
+
+    if (titleTarget - textContainer.position.y > 0.01) {
+        textContainer.position.y += 0.01;
+    } else if (textContainer.position.y - titleTarget > 0.01) {
+        textContainer.position.y -= 0.01;
+    }
+
+    if (targetDirection === 1) {
+        while (target > mainOrbit.rotation.x) {
+            mainOrbit.rotation.x += rotateSpeed;
+        }
+    } else {
+        while (target < mainOrbit.rotation.x) {
+            mainOrbit.rotation.x -= rotateSpeed;
+        }
+    }
 
 }
 
@@ -133,5 +169,5 @@ textContainer.add(title);
 textContainer.add(subTitle);
 
 subTitle.position.setY(-0.2);
-textContainer.position.setY(1.5);
+textContainer.position.setY(titleBottom);
 scene.add(textContainer);

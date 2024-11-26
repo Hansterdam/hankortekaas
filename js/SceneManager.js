@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { Text } from 'troika-three-text'
 import { BACKGROUND_COLOR, ROTATE_SPEED, SCROLL_SPEED } from './constants';
+import MainOrbit from './objects/MainOrbit';
+import EventBus from './EventBus';
 
 export default class SceneManager {
     constructor(canvas) {
@@ -11,7 +13,6 @@ export default class SceneManager {
         this.createCamera();
         this.createScene();
         this.createMainOrbit();
-        this.createStars();
         this.createLights();
         this.createTexts();
 
@@ -36,65 +37,54 @@ export default class SceneManager {
     }
 
     onMouseWheel(event) {
-        // Adjust the planet's rotation based on the scroll input
         const isTrackpad = Math.abs(event.deltaY) < 100;
         let factor = event.deltaY > 0 ? 1 : -1;
-        factor = isTrackpad ? factor * -1 : factor;
-        this.target += factor * SCROLL_SPEED;
-        this.targetDirection = factor;
+        // Trackpad tends to scroll way too fast and in the wrong direction.
+        // So we slow it down and reverse it.
+        factor = isTrackpad ? factor * -0.2 : factor;
+
+        EventBus.publish('scroll', factor);
     }
 
     animate() {
         this.renderer.render(this.scene, this.camera);
+        this.mainOrbit.animate();
 
-        if (this.mainOrbit.rotation.x > Math.PI * 2) {
-            this.mainOrbit.rotation.x -= Math.PI * 2;
-        } else if (this.mainOrbit.rotation.x < 0) {
-            this.mainOrbit.rotation.x += Math.PI * 2;
-        }
-        if (this.target > Math.PI * 2) {
-            this.target -= Math.PI * 2;
-        } else if (this.target < 0) {
-            this.target += Math.PI * 2;
-        }
+        // if (this.target > this.titleAtTop) {
+        //     if (this.target < Math.PI * 2 - this.titleAtTop) {
+        //         this.titleTarget = this.titleTop;
+        //     } else if (this.target > Math.PI * 2 - this.titleStillness) {
+        //         this.titleTarget = this.titleBottom;
+        //     } else {
+        //         let factor = ((Math.PI * 2 - this.titleStillness - this.target) / (this.titleAtTop - this.titleStillness));
+        //         let scale = (1 - factor) * 0.5 + 0.5;
+        //         this.textContainer.scale.set(scale, scale, scale);
+        //         this.titleTarget = factor * (this.titleTop - this.titleBottom) + this.titleBottom;
+        //     }
+        // } else if (this.target < this.titleStillness) {
+        //     this.titleTarget = this.titleBottom;
+        // } else {
+        //     let factor = ((this.target - this.titleStillness) / (this.titleAtTop - this.titleStillness));
+        //     let scale = (1 - factor) * 0.5 + 0.5;
+        //     this.textContainer.scale.set(scale, scale, scale);
+        //     this.titleTarget = factor * (this.titleTop - this.titleBottom) + this.titleBottom;
+        // }
 
-        if (this.target > this.titleAtTop) {
-            if (this.target < Math.PI * 2 - this.titleAtTop) {
-                this.titleTarget = this.titleTop;
-            } else if (this.target > Math.PI * 2 - this.titleStillness) {
-                this.titleTarget = this.titleBottom;
-            } else {
-                let factor = ((Math.PI * 2 - this.titleStillness - this.target) / (this.titleAtTop - this.titleStillness));
-                let scale = (1 - factor) * 0.5 + 0.5;
-                this.textContainer.scale.set(scale, scale, scale);
-                this.titleTarget = factor * (this.titleTop - this.titleBottom) + this.titleBottom;
-            }
-        } else if (this.target < this.titleStillness) {
-            this.titleTarget = this.titleBottom;
-        } else {
-            let factor = ((this.target - this.titleStillness) / (this.titleAtTop - this.titleStillness));
-            let scale = (1 - factor) * 0.5 + 0.5;
-            this.textContainer.scale.set(scale, scale, scale);
-            this.titleTarget = factor * (this.titleTop - this.titleBottom) + this.titleBottom;
-        }
+        // if (this.titleTarget - this.textContainer.position.y > 0.01) {
+        //     this.textContainer.position.y += 0.01;
+        // } else if (this.textContainer.position.y - this.titleTarget > 0.01) {
+        //     this.textContainer.position.y -= 0.01;
+        // }
 
-        if (this.titleTarget - this.textContainer.position.y > 0.01) {
-            this.textContainer.position.y += 0.01;
-        } else if (this.textContainer.position.y - this.titleTarget > 0.01) {
-            this.textContainer.position.y -= 0.01;
-        }
-
-        if (this.targetDirection === 1) {
-            while (this.target > this.mainOrbit.rotation.x) {
-                this.mainOrbit.rotation.x += ROTATE_SPEED;
-                this.aboutTitleContainer.rotation.x += ROTATE_SPEED;
-            }
-        } else {
-            while (this.target < this.mainOrbit.rotation.x) {
-                this.mainOrbit.rotation.x -= ROTATE_SPEED;
-                this.aboutTitleContainer.rotation.x -= ROTATE_SPEED;
-            }
-        }
+        // if (this.targetDirection === 1) {
+        //     while (this.target > this.mainOrbit.rotation.x) {
+        //         this.aboutTitleContainer.rotation.x += ROTATE_SPEED;
+        //     }
+        // } else {
+        //     while (this.target < this.mainOrbit.rotation.x) {
+        //         this.aboutTitleContainer.rotation.x -= ROTATE_SPEED;
+        //     }
+        // }
     }
 
     createCamera() {
@@ -109,26 +99,7 @@ export default class SceneManager {
     }
 
     createMainOrbit() {
-        this.mainOrbit = new THREE.Object3D();
-        this.scene.add(this.mainOrbit);
-        const planetGeometry = new THREE.DodecahedronGeometry(1, 3);
-        const planetMaterial = new THREE.MeshPhongMaterial({ color: 0x998844, flatShading: true, shininess: 0 });
-        const planet = new THREE.Mesh(planetGeometry, planetMaterial);
-        this.mainOrbit.add(planet);
-    }
-
-    createStars() {
-        const starMaterial = new THREE.MeshBasicMaterial({ color: 0xffffbb });
-        this.stars = [];
-        const distanceToCenter = 50;
-        const outerRadius = 1200;
-        for (let i = 0; i < 700; i++) {
-            const starGeometry = new THREE.SphereGeometry(Math.random() * 0.6 + 0.4, 12, 7);
-            const star = new THREE.Mesh(starGeometry, starMaterial);
-            star.position.add(this.getRandomPositions(distanceToCenter, outerRadius));
-            this.mainOrbit.add(star);
-            this.stars.push(star);
-        }
+        this.mainOrbit = new MainOrbit(this.scene);
     }
 
     getRandomPositions(distanceToCenter, outerRadius) {

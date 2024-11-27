@@ -7,8 +7,9 @@ bindEventListeners();
 sceneManager.render();
 
 function bindEventListeners() {
-    window.onresize = onWindowResize;
-    window.onwheel = onMouseWheel;
+    window.addEventListener('resize', onWindowResize);
+    window.addEventListener('wheel', onMouseWheel);
+    // window.addEventListener('touchmove', (event) => console.log(event));
     onWindowResize();
 }
 

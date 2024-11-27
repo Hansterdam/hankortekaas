@@ -1,10 +1,14 @@
 const BACKGROUND_COLOR = 0x041230;
+const TEXT_COLOR = 0x116622;
+
 const SCROLL_SPEED = 0.05;
 const ROTATE_SPEED = 0.004;
 const FULL_CIRCLE = Math.PI * 2;
 
 export {
     BACKGROUND_COLOR,
+    TEXT_COLOR,
+
     SCROLL_SPEED,
     ROTATE_SPEED,
     FULL_CIRCLE,

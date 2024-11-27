@@ -1,10 +1,10 @@
 import * as THREE from 'three';
-import { Text } from 'troika-three-text'
 import { BACKGROUND_COLOR, FULL_CIRCLE, ROTATE_SPEED, SCROLL_SPEED } from './constants';
 import MainOrbit from './objects/MainOrbit';
 import EventBus from './EventBus';
 import Lights from './objects/Lights';
 import TitleText from './objects/TitleText';
+import Page from './objects/Page';
 
 export default class SceneManager {
     constructor(canvas) {
@@ -20,7 +20,7 @@ export default class SceneManager {
 
         this.target = 0;
         this.direction = 1;
-        this.position = 0;
+        this.rotation = 0;
     }
 
     render() {
@@ -52,35 +52,23 @@ export default class SceneManager {
 
     animate() {
         const easing = 0.01;
-        if (this.direction > 0 && this.target > this.position) {
-            this.position += (this.target - this.position) * easing;
-        } else if (this.direction < 0 && this.target < this.position) {
-            this.position -= (this.position - this.target) * easing;
-        } else {
-            this.position = this.normalize(this.position);
-            this.target = this.normalize(this.target);
+        if (this.direction > 0 && this.target > this.rotation) {
+            this.rotation += (this.target - this.rotation) * easing;
+        } else if (this.direction < 0 && this.target < this.rotation) {
+            this.rotation -= (this.rotation - this.target) * easing;
         }
 
-        this.mainOrbit.animate(this.position);
-        this.titleContainer.animate(this.position);
+        this.mainOrbit.animate(this.rotation);
+        this.titleContainer.animate(this.rotation);
+        this.aboutContainer.animate(this.rotation);
 
         this.renderer.render(this.scene, this.camera);
-    }
-
-    normalize(angle) {
-        if (angle > FULL_CIRCLE) {
-            angle -= FULL_CIRCLE;
-        } else if (angle < 0) {
-            angle += FULL_CIRCLE;
-        }
-
-        return angle;
     }
 
     createCamera() {
         this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 1, 1000);
         this.camera.position.set(0, 1.3, 1.8);
-        this.camera.lookAt(0, 1.3, 0);
+        this.camera.lookAt(0, 1.5, 0);
     }
 
     createScene() {
@@ -98,26 +86,6 @@ export default class SceneManager {
 
     createTexts() {
         this.titleContainer = new TitleText(this.scene);
-
-        this.titleBottom = 1.5;
-        this.titleTop = 2;
-        this.titleTarget = 0;
-        this.titleAtTop = Math.PI / 10;
-        this.titleStillness = 0.1;
-
-        const titleColor = 0x118833;
-
-        this.aboutTitle = new Text();
-        this.aboutTitle.text = 'About';
-        this.aboutTitle.fontSize = 0.17;
-        this.aboutTitle.color = titleColor;
-        this.aboutTitle.anchorX = 'center';
-        this.aboutTitle.sync();
-        this.aboutTitle.position.setY(1.3);
-
-        this.aboutTitleContainer = new THREE.Object3D();
-        this.aboutTitleContainer.add(this.aboutTitle);
-        this.aboutTitleContainer.rotation.x = -1;
-        this.scene.add(this.aboutTitleContainer);
+        this.aboutContainer = new Page(this.scene, 'About', -1);
     }
 }

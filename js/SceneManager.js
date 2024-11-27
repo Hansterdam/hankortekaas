@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import { Text } from 'troika-three-text'
-import { BACKGROUND_COLOR, ROTATE_SPEED, SCROLL_SPEED } from './constants';
+import { BACKGROUND_COLOR, FULL_CIRCLE, ROTATE_SPEED, SCROLL_SPEED } from './constants';
 import MainOrbit from './objects/MainOrbit';
 import EventBus from './EventBus';
+import Lights from './objects/Lights';
+import TitleText from './objects/TitleText';
 
 export default class SceneManager {
     constructor(canvas) {
@@ -17,7 +19,8 @@ export default class SceneManager {
         this.createTexts();
 
         this.target = 0;
-        this.targetDirection = 1;
+        this.direction = 1;
+        this.position = 0;
     }
 
     render() {
@@ -41,50 +44,37 @@ export default class SceneManager {
         let factor = event.deltaY > 0 ? 1 : -1;
         // Trackpad tends to scroll way too fast and in the wrong direction.
         // So we slow it down and reverse it.
-        factor = isTrackpad ? factor * -0.2 : factor;
+        factor = isTrackpad ? factor * -0.15 : factor;
 
-        EventBus.publish('scroll', factor);
+        this.target += factor * SCROLL_SPEED;
+        this.direction = factor;
     }
 
     animate() {
+        const easing = 0.01;
+        if (this.direction > 0 && this.target > this.position) {
+            this.position += (this.target - this.position) * easing;
+        } else if (this.direction < 0 && this.target < this.position) {
+            this.position -= (this.position - this.target) * easing;
+        } else {
+            this.position = this.normalize(this.position);
+            this.target = this.normalize(this.target);
+        }
+
+        this.mainOrbit.animate(this.position);
+        this.titleContainer.animate(this.position);
+
         this.renderer.render(this.scene, this.camera);
-        this.mainOrbit.animate();
+    }
 
-        // if (this.target > this.titleAtTop) {
-        //     if (this.target < Math.PI * 2 - this.titleAtTop) {
-        //         this.titleTarget = this.titleTop;
-        //     } else if (this.target > Math.PI * 2 - this.titleStillness) {
-        //         this.titleTarget = this.titleBottom;
-        //     } else {
-        //         let factor = ((Math.PI * 2 - this.titleStillness - this.target) / (this.titleAtTop - this.titleStillness));
-        //         let scale = (1 - factor) * 0.5 + 0.5;
-        //         this.textContainer.scale.set(scale, scale, scale);
-        //         this.titleTarget = factor * (this.titleTop - this.titleBottom) + this.titleBottom;
-        //     }
-        // } else if (this.target < this.titleStillness) {
-        //     this.titleTarget = this.titleBottom;
-        // } else {
-        //     let factor = ((this.target - this.titleStillness) / (this.titleAtTop - this.titleStillness));
-        //     let scale = (1 - factor) * 0.5 + 0.5;
-        //     this.textContainer.scale.set(scale, scale, scale);
-        //     this.titleTarget = factor * (this.titleTop - this.titleBottom) + this.titleBottom;
-        // }
+    normalize(angle) {
+        if (angle > FULL_CIRCLE) {
+            angle -= FULL_CIRCLE;
+        } else if (angle < 0) {
+            angle += FULL_CIRCLE;
+        }
 
-        // if (this.titleTarget - this.textContainer.position.y > 0.01) {
-        //     this.textContainer.position.y += 0.01;
-        // } else if (this.textContainer.position.y - this.titleTarget > 0.01) {
-        //     this.textContainer.position.y -= 0.01;
-        // }
-
-        // if (this.targetDirection === 1) {
-        //     while (this.target > this.mainOrbit.rotation.x) {
-        //         this.aboutTitleContainer.rotation.x += ROTATE_SPEED;
-        //     }
-        // } else {
-        //     while (this.target < this.mainOrbit.rotation.x) {
-        //         this.aboutTitleContainer.rotation.x -= ROTATE_SPEED;
-        //     }
-        // }
+        return angle;
     }
 
     createCamera() {
@@ -102,27 +92,13 @@ export default class SceneManager {
         this.mainOrbit = new MainOrbit(this.scene);
     }
 
-    getRandomPositions(distanceToCenter, outerRadius) {
-        const vector = new THREE.Vector3();
-        vector.randomDirection();
-        vector.multiplyScalar(Math.random() * (outerRadius - distanceToCenter) + distanceToCenter);
-        return vector;
-    }
-
     createLights() {
-        const color = 0xffffff;
-        const intensity = 0.4;
-        const light = new THREE.DirectionalLight(color, intensity);
-        light.position.set(-1, 2, 6);
-        this.scene.add(light);
-
-        const light2 = new THREE.DirectionalLight(color, 10);
-        light2.position.set(0, 0.5, -2);
-        light2.lookAt(0, 2, 2);
-        this.scene.add(light2);
+        this.lights = new Lights(this.scene);
     }
 
     createTexts() {
+        this.titleContainer = new TitleText(this.scene);
+
         this.titleBottom = 1.5;
         this.titleTop = 2;
         this.titleTarget = 0;
@@ -130,27 +106,6 @@ export default class SceneManager {
         this.titleStillness = 0.1;
 
         const titleColor = 0x118833;
-        this.title = new Text();
-        this.title.text = 'Han Kortekaas';
-        this.title.fontSize = 0.2;
-        this.title.color = titleColor;
-        this.title.anchorX = 'center';
-        this.title.sync();
-
-        this.subTitle = new Text();
-        this.subTitle.text = 'Software Developer';
-        this.subTitle.fontSize = 0.08;
-        this.subTitle.color = titleColor;
-        this.subTitle.anchorX = 'center';
-        this.subTitle.sync();
-
-        this.textContainer = new THREE.Object3D();
-        this.textContainer.add(this.title);
-        this.textContainer.add(this.subTitle);
-
-        this.subTitle.position.setY(-0.2);
-        this.textContainer.position.setY(this.titleBottom);
-        this.scene.add(this.textContainer);
 
         this.aboutTitle = new Text();
         this.aboutTitle.text = 'About';

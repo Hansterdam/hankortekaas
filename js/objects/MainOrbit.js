@@ -21,10 +21,10 @@ export default class MainOrbit {
         this.orbit.add(object);
     }
 
-    animate(position) {
-        this.orbit.rotation.x = position;
-        this.planet.animate(position);
-        this.stars.animate(position);
+    animate(rotation) {
+        this.orbit.rotation.x = rotation;
+        this.planet.animate(rotation);
+        this.stars.animate(rotation);
     }
 
     normalize(angle) {

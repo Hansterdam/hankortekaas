@@ -1,59 +1,55 @@
 import * as THREE from 'three';
 import { Text } from 'troika-three-text'
-import { FULL_CIRCLE } from '../constants';
+import { FULL_CIRCLE, TEXT_COLOR } from '../constants';
+import { normalizeAngle } from '../utils';
 
 export default class TitleText {
     constructor(scene) {
         this.scene = scene;
 
-        this.titleBottom = 1.5;
-        this.titleTop = 2;
-        this.titleTarget = 0;
-        this.titleAtTop = Math.PI / 10;
-        this.titleStillness = 0.1;
+        this.bottom = 1.5;
+        this.top = 2.25;
+        this.atTop = 0.35;
+        this.stillness = 0.1;
+        this.smallScale = 0.5;
 
         this.textContainer = new THREE.Object3D();
-        this.titleColor = 0x118833;
 
         this.title = this.createTitle();
         this.subTitle = this.createSubTitle();
 
-        this.textContainer.position.setY(this.titleBottom);
+        this.textContainer.position.setY(this.bottom);
         this.scene.add(this.textContainer);
     }
 
-    animate(position) {
-        position = this.normalize(position);
-        if (position > this.titleAtTop) {
-            if (position < FULL_CIRCLE - this.titleAtTop) {
-                this.titleTarget = this.titleTop;
-            } else if (position > FULL_CIRCLE - this.titleStillness) {
-                this.titleTarget = this.titleBottom;
+    animate(rotation) {
+        rotation = normalizeAngle(rotation);
+        if (rotation > this.atTop) {
+            if (rotation < FULL_CIRCLE - this.atTop) {
+                // Most of the rotation the text is at the top
+                this.textContainer.position.y = this.top;
+            } else if (rotation > FULL_CIRCLE - this.stillness) {
+                // At the end of the circle there's a period of stillness with the text at the bottom
+                this.textContainer.position.y = this.bottom;
             } else {
-                let factor = ((FULL_CIRCLE - this.titleStillness - position) / (this.titleAtTop - this.titleStillness));
-                let scale = (1 - factor) * 0.5 + 0.5;
-                this.textContainer.scale.set(scale, scale, scale);
-                this.titleTarget = factor * (this.titleTop - this.titleBottom) + this.titleBottom;
+                // The text is moving and scaling
+                let factor = ((FULL_CIRCLE - this.stillness - rotation) / (this.atTop - this.stillness));
+                this.updateScaleAndPosition(factor);
             }
-        } else if (position < this.titleStillness) {
-            this.titleTarget = this.titleBottom;
+        } else if (rotation < this.stillness) {
+            // At the beginning of the circle there's a period of stillness with the text at the bottom
+            this.textContainer.position.y = this.bottom;
         } else {
-            let factor = ((position - this.titleStillness) / (this.titleAtTop - this.titleStillness));
-            let scale = (1 - factor) * 0.5 + 0.5;
-            this.textContainer.scale.set(scale, scale, scale);
-            this.titleTarget = factor * (this.titleTop - this.titleBottom) + this.titleBottom;
+            // Rotation is bigger than stillness but should not be at the top, so the text is moving and scaling
+            let factor = ((rotation - this.stillness) / (this.atTop - this.stillness));
+            this.updateScaleAndPosition(factor);
         }
-
-        this.textContainer.position.y = this.titleTarget;
     }
 
-    normalize(angle) {
-        if (angle > FULL_CIRCLE) {
-            return this.normalize(angle - FULL_CIRCLE);
-        } else if (angle < 0) {
-            return this.normalize(angle + FULL_CIRCLE);
-        }
-        return angle;
+    updateScaleAndPosition(factor) {
+        let scale = (1 - factor) * this.smallScale + this.smallScale;
+        this.textContainer.scale.set(scale, scale, scale);
+        this.textContainer.position.y = factor * (this.top - this.bottom) + this.bottom;
     }
 
     createTitle() {
@@ -77,7 +73,7 @@ export default class TitleText {
         const text = new Text();
         text.text = str;
         text.fontSize = size;
-        text.color = this.titleColor;
+        text.color = TEXT_COLOR;
         text.anchorX = 'center';
 
         return text;
